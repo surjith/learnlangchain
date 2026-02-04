@@ -1,12 +1,12 @@
 from dotenv import load_dotenv
-from src.state.schema import StudentState
-from src.app import app
+from src.graph.state.schema import StudentState
+from src.graph.graph import graph
 
 load_dotenv(override=True)  # Load environment variables from .env file
 
 if __name__ == "__main__":
     # Run the application with an initial state
-    app = app()
+    app = graph()
 
     initial = {
     "student_name": "Ananya",

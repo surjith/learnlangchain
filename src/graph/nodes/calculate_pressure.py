@@ -1,5 +1,5 @@
 
-from src.state.schema import StudentState
+from src.graph.state.schema import StudentState
 from datetime import date, timedelta
 
 '''If there is more than 120 minutes of estimated work due in the next 3 days,

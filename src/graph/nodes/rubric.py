@@ -1,4 +1,4 @@
-from src.state.schema import StudentState
+from src.graph.state.schema import StudentState
 from src.tools.documents import load_rubric
 
 def pick_most_urgent_assignmen(state: StudentState) -> dict:

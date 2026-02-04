@@ -1,12 +1,12 @@
 from langgraph.graph import StateGraph, START, END
-from src.routing.decision import route_by_pressure
-from src.nodes.rubric import pick_most_urgent_assignmen, load_rubric_for_current_assignment, add_rubric_to_plan
-from src.nodes.calculate_pressure import calculate_pressure
-from src.nodes.normalise import normalise_inputs
-from src.nodes.planning import normal_plan, triage_plan
-from src.state.schema import StudentState
+from src.graph.routes.decision import route_by_pressure
+from src.graph.nodes.rubric import pick_most_urgent_assignmen, load_rubric_for_current_assignment, add_rubric_to_plan
+from src.graph.nodes.calculate_pressure import calculate_pressure
+from src.graph.nodes.normalise import normalise_inputs
+from src.graph.nodes.planning import normal_plan, triage_plan
+from src.graph.state.schema import StudentState
 
-def app() -> StateGraph:
+def graph() -> StateGraph:
     # build the state graph
     graph = StateGraph(StudentState)
 

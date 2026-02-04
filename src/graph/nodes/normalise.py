@@ -1,6 +1,6 @@
 # define normalisation function
 # this function will be called at the start of the graph execution
-from src.state.schema import StudentState
+from src.graph.state.schema import StudentState
 
 
 def normalise_inputs(state: StudentState) -> dict:

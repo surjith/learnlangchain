@@ -1,6 +1,6 @@
 # define a funtion to build the plan
 from typing import List
-from src.state.schema import StudentState
+from src.graph.state.schema import StudentState
 
 def normal_plan(state: StudentState) -> dict:
     plan = state["today_plan"]
