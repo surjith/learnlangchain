@@ -8,15 +8,38 @@ if __name__ == "__main__":
     # Run the application with an initial state
     app = app()
 
-    initial: StudentState = {
-        "student_name": "Ananya",
-        "today": "2026-02-03",
-        "assignments": [
-            {"title": "Algebra worksheet", "subject": "Math", "due_date": "2026-02-05", "est_minutes": 45, "status": "in_progress"},
-            {"title": "Persuasive writing draft", "subject": "English", "due_date": "2026-02-06", "est_minutes": 30, "status": "not_started"},
-            {"title": "Science glossary", "subject": "Science", "due_date": "2026-02-10", "est_minutes": 30, "status": "not_started"},
-        ],
-        "today_plan": [],
+    initial = {
+    "student_name": "Ananya",
+    "today": "2026-02-03",
+    "assignments": [
+        {
+            "id": "eng-001",
+            "title": "Persuasive writing draft",
+            "subject": "English",
+            "due_date": "2026-02-05",
+            "est_minutes": 90,
+            "status": "not_started",
+            "rubric_ref": "src/data/rubrics/english_writing.txt",
+        },
+        {
+            "id": "sci-001",
+            "title": "Science glossary",
+            "subject": "Science",
+            "due_date": "2026-02-04",
+            "est_minutes": 45,
+            "status": "completed",
+            "rubric_ref": None,
+        },
+        {
+            "id": "math-001",
+            "title": "Algebra worksheet",
+            "subject": "Math",
+            "due_date": "2026-02-05",
+            "est_minutes": 30,
+            "status": "in_progress",
+            "rubric_ref": None,
+        },
+    ],
     }
 
     final = app.invoke(initial)

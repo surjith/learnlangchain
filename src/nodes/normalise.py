@@ -14,4 +14,10 @@ def normalise_inputs(state: StudentState) -> dict:
     else:
         state_assignments = state["assignments"]
 
-    return {"assignments": state_assignments, "today_plan": []}
+    return {
+        "assignments": state_assignments, 
+        "today_plan": [],
+        "pressure_score": 0.0,
+        "current_assignment_id": None,
+        "rubric": None,
+        }
