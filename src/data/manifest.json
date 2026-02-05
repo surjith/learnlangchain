@@ -1,0 +1,17 @@
+
+[
+  {
+    "assignment_id": "eng-001",
+    "sources": [
+      { "doc_type": "rubric", "path": "src/data/rubrics/eng-001_rubric.md" },
+      { "doc_type": "assignment_question", "path": "src/data/assignments/eng-001_question.txt" }
+    ]
+  },
+   {
+    "assignment_id": "math-001",
+    "sources": [
+      { "doc_type": "rubric", "path": "src/data/rubrics/math-001_rubric.md" },
+      { "doc_type": "assignment_question", "path": "src/data/assignments/math-001_question.txt" }
+    ]
+  }
+]

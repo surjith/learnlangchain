@@ -1,5 +1,5 @@
 from src.graph.state.schema import StudentState
-from src.tools.documents import load_rubric
+from tools.doc_tools import load_rubric
 
 def pick_most_urgent_assignmen(state: StudentState) -> dict:
     """Pick the most urgent assignment based on due date"""

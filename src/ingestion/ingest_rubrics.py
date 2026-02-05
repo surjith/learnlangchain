@@ -1,0 +1,121 @@
+from __future__ import annotations
+import json
+from dataclasses import dataclass
+from typing import Any, Iterable
+from pathlib import Path
+import chromadb
+from openai import OpenAI
+
+from src.tools.doc_tools import load_manifest, load_text_file
+from tools.vector_tools import get_collection, embed_batch, chunk_text, batched
+
+RUBRICS_COLLECTION = "rubrics"
+DEFAULT_MANIFEST_PATH = "src/data/manifest.json"
+
+client = OpenAI()
+
+def ingest_sources(
+    manifest_path: str = DEFAULT_MANIFEST_PATH,    
+    collection_name: str = RUBRICS_COLLECTION,
+    embed_batch_size: int = 64,
+) -> None:
+     
+    """
+    Reads manifest -> loads sources -> chunks -> embeds -> upserts to Chroma.
+
+    Metadata design:
+      - assignment_id: stable join key (your domain truth)
+      - doc_type: retrieval policy control (rubric vs question vs inferred)
+      - source_ref: provenance/debuggability
+      - chunk_index: deterministic ordering within a source
+    """
+    entries = load_manifest(manifest_path)
+    collection = get_collection(name=collection_name)
+
+    total_sources = 0
+    total_chunks = 0
+
+    for entry in entries:
+        assignment_id = entry.assignment_id
+
+        for src in entry.sources:
+            total_sources += 1
+            p = Path(src.path)
+            if not p.exists():
+                raise FileNotFoundError(f"Missing source file: {src.path} (assignment_id={assignment_id})")
+
+            if p.suffix.lower() not in {".md", ".txt"}:
+                raise ValueError(f"Unsupported file type for Lesson 4: {p.suffix} (path={src.path})")
+
+            raw = load_text_file(p)
+            chunks = chunk_text(raw)
+            if not chunks:
+                continue
+
+            # Build IDs and metadata per chunk
+            ids = [f"{assignment_id}::{src.doc_type}::{p.name}::chunk::{i}" for i in range(len(chunks))]
+            metadata = [{
+                "assignment_id": assignment_id,
+                "doc_type": src.doc_type,
+                "source_type": p.suffix.lower().lstrip("."),   # "md" | "txt"
+                "source_ref": str(p),
+                "chunk_index": i,
+            } for i in range(len(chunks))]
+
+            # Embed in batches to keep request sizes reasonable
+            embeddings: list[list[float]] = []
+            for chunk_batch in batched(chunks, embed_batch_size):
+                embeddings.extend(embed_batch(chunk_batch))
+
+            # Safety: ensure alignment
+            if not (len(ids) == len(chunks) == len(embeddings) == len(metadatas)):
+                raise RuntimeError("Alignment error: ids/chunks/embeddings/metadatas length mismatch")
+
+            collection.upsert(
+                ids=ids,
+                documents=chunks,
+                embeddings=embeddings,
+                metadatas=metadata,
+            )
+
+            total_chunks += len(chunks)
+            print(f"Ingested {len(chunks):>3} chunks | assignment_id={assignment_id} | doc_type={src.doc_type} | {p}")
+
+    print(f"\nDone. Sources ingested: {total_sources}, total chunks upserted: {total_chunks}")
+    print(f"Chroma: collection={collection_name}")
+
+def ingest_rubrics(rubrics: Path = Path("src/data/rubrics"), persist_directory: str = ".chroma") -> None:
+    """
+    Ingests rubric text files from a specified directory, chunks the text, generates embeddings,
+    and stores them in a ChromaDB collection.
+    Args:
+        rubrics (Path, optional): The directory containing rubric text files. Defaults to "src/data/rubrics".
+        persist_directory (Path, optional): The directory to persist the ChromaDB collection. Defaults to ".chroma".
+    """
+    # Initialize ChromaDB client and collection
+    chroma_client = chromadb.PersistentClient(path=str(persist_directory)) 
+    collection = chroma_client.get_or_create_collection(name="rubrics")
+
+    # Process each rubric file
+    for rubric_file in rubrics.glob("*.[txt|md]"):
+        with open(rubric_file, "r", encoding="utf-8") as f:
+            text = f.read()
+        
+        # Chunk the text
+        chunks = chunk_text(text)
+        
+        # Generate embeddings for the chunks
+        embeddings = embed(chunks)
+        
+        # Prepare documents for insertion
+        documents = [{
+            "id": f"{rubric_file.stem}_{i}",
+            "text": chunk,
+            "embedding": embedding
+        } for i, (chunk, embedding) in enumerate(zip(chunks, embeddings))]
+        
+        # Insert documents into the collection
+        collection.add(documents)
+
+    # Persist the collection to disk
+    chroma_client.persist()
