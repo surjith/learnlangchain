@@ -1,0 +1,9 @@
+services:
+  chroma:
+    image: chromadb/chroma:1.4.1
+    ports:
+      - "8000:8000"
+    environment:
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - ./.chroma:/chroma/chroma

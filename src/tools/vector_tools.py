@@ -7,9 +7,10 @@ CHUNK_MAX_CHARS = 2000
 CHUNK_OVERLAP_CHARS = 200
 DEFAULT_CHROMA_DIR = ".chroma"
 
-def get_collection(name: str, persist_dir: str = DEFAULT_CHROMA_DIR):
-    chroma = chromadb.PersistentClient(path=persist_dir)
-    return chroma.get_or_create_collection(name=name)
+def get_collection(name: str):
+    client = chromadb.HttpClient(host="localhost", port=8000)
+    return client.get_or_create_collection(name=name)
+
 
 def chunk_text(text: str, max_chars: int = CHUNK_MAX_CHARS, overlap: int = CHUNK_OVERLAP_CHARS) -> list[str]:
     """

@@ -1,22 +1,29 @@
 from __future__ import annotations
-import json
-from dataclasses import dataclass
-from typing import Any, Iterable
+from importlib import metadata
+import sys
+from dotenv import load_dotenv
 from pathlib import Path
-import chromadb
 from openai import OpenAI
+import traceback
+
+# Add parent directory to path so we can import src modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.tools.doc_tools import load_manifest, load_text_file
-from tools.vector_tools import get_collection, embed_batch, chunk_text, batched
+from src.tools.vector_tools import get_collection, embed_batch, chunk_text, batched
 
 RUBRICS_COLLECTION = "rubrics"
+DEFAULT_CHROMA_DIR = ".chroma"
 DEFAULT_MANIFEST_PATH = "src/data/manifest.json"
+
+load_dotenv(override=True)
 
 client = OpenAI()
 
 def ingest_sources(
     manifest_path: str = DEFAULT_MANIFEST_PATH,    
     collection_name: str = RUBRICS_COLLECTION,
+    persist_dir: str = DEFAULT_CHROMA_DIR,
     embed_batch_size: int = 64,
 ) -> None:
      
@@ -34,9 +41,10 @@ def ingest_sources(
 
     total_sources = 0
     total_chunks = 0
-
+    print ("Starting ingestion...\n")
     for entry in entries:
         assignment_id = entry.assignment_id
+        print(f"Processing assignment_id={assignment_id} with {len(entry.sources)} sources")
 
         for src in entry.sources:
             total_sources += 1
@@ -65,57 +73,30 @@ def ingest_sources(
             # Embed in batches to keep request sizes reasonable
             embeddings: list[list[float]] = []
             for chunk_batch in batched(chunks, embed_batch_size):
-                embeddings.extend(embed_batch(chunk_batch))
+                embeddings.extend(embed_batch(client, chunk_batch))
 
             # Safety: ensure alignment
-            if not (len(ids) == len(chunks) == len(embeddings) == len(metadatas)):
+            if not (len(ids) == len(chunks) == len(embeddings) == len(metadata)):
                 raise RuntimeError("Alignment error: ids/chunks/embeddings/metadatas length mismatch")
-
-            collection.upsert(
-                ids=ids,
-                documents=chunks,
-                embeddings=embeddings,
-                metadatas=metadata,
-            )
-
+                        
+            try:            
+                collection.upsert(
+                    ids=ids,
+                    documents=chunks,
+                    embeddings=embeddings,
+                    metadatas=metadata,
+                )
+            except BaseException as e:  # <-- important: catches SystemExit/KeyboardInterrupt too
+                print(f"Error upserting to Chroma for assignment_id={assignment_id}, source={src.path}")
+                raise
             total_chunks += len(chunks)
-            print(f"Ingested {len(chunks):>3} chunks | assignment_id={assignment_id} | doc_type={src.doc_type} | {p}")
 
     print(f"\nDone. Sources ingested: {total_sources}, total chunks upserted: {total_chunks}")
-    print(f"Chroma: collection={collection_name}")
+    print(f"Chroma: dir={persist_dir}, collection={collection_name}")
 
-def ingest_rubrics(rubrics: Path = Path("src/data/rubrics"), persist_directory: str = ".chroma") -> None:
-    """
-    Ingests rubric text files from a specified directory, chunks the text, generates embeddings,
-    and stores them in a ChromaDB collection.
-    Args:
-        rubrics (Path, optional): The directory containing rubric text files. Defaults to "src/data/rubrics".
-        persist_directory (Path, optional): The directory to persist the ChromaDB collection. Defaults to ".chroma".
-    """
-    # Initialize ChromaDB client and collection
-    chroma_client = chromadb.PersistentClient(path=str(persist_directory)) 
-    collection = chroma_client.get_or_create_collection(name="rubrics")
-
-    # Process each rubric file
-    for rubric_file in rubrics.glob("*.[txt|md]"):
-        with open(rubric_file, "r", encoding="utf-8") as f:
-            text = f.read()
-        
-        # Chunk the text
-        chunks = chunk_text(text)
-        
-        # Generate embeddings for the chunks
-        embeddings = embed(chunks)
-        
-        # Prepare documents for insertion
-        documents = [{
-            "id": f"{rubric_file.stem}_{i}",
-            "text": chunk,
-            "embedding": embedding
-        } for i, (chunk, embedding) in enumerate(zip(chunks, embeddings))]
-        
-        # Insert documents into the collection
-        collection.add(documents)
-
-    # Persist the collection to disk
-    chroma_client.persist()
+if __name__ == "__main__":    
+    try:
+        ingest_sources()
+    except BaseException:
+        traceback.print_exc()
+        raise
