@@ -23,7 +23,6 @@ client = OpenAI()
 def ingest_sources(
     manifest_path: str = DEFAULT_MANIFEST_PATH,    
     collection_name: str = RUBRICS_COLLECTION,
-    persist_dir: str = DEFAULT_CHROMA_DIR,
     embed_batch_size: int = 64,
 ) -> None:
      
@@ -56,6 +55,8 @@ def ingest_sources(
                 raise ValueError(f"Unsupported file type for Lesson 4: {p.suffix} (path={src.path})")
 
             raw = load_text_file(p)
+            print(f"  {p.name}: raw_chars={len(raw)}")
+            
             chunks = chunk_text(raw)
             if not chunks:
                 continue
@@ -92,7 +93,7 @@ def ingest_sources(
             total_chunks += len(chunks)
 
     print(f"\nDone. Sources ingested: {total_sources}, total chunks upserted: {total_chunks}")
-    print(f"Chroma: dir={persist_dir}, collection={collection_name}")
+    print(f"Chroma: collection={collection_name}")
 
 if __name__ == "__main__":    
     try:

@@ -1,6 +1,7 @@
 from typing import Literal, Optional, TypedDict, List
 
 Status = Literal["not_started", "in_progress", "completed"]
+RetrievalQuality = Literal["strong", "weak", "none"]
 
 class Assignement(TypedDict):
    id: str
@@ -25,4 +26,7 @@ class StudentState(TypedDict):
     today_plan: List[str]
 
     # Rubric working context (loaded only when needed)
+    retrieval_quality: Optional[RetrievalQuality]
     rubric: Optional[str]
+    retrieval_result: Optional[object]
+    

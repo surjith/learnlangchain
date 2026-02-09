@@ -865,6 +865,7 @@ dependencies = [
     { name = "langchain-openai" },
     { name = "langgraph" },
     { name = "langgraph-cli" },
+    { name = "onnxruntime" },
     { name = "python-dotenv" },
     { name = "tiktoken" },
 ]
@@ -877,6 +878,7 @@ requires-dist = [
     { name = "langchain-openai", specifier = ">=1.1.7" },
     { name = "langgraph", specifier = ">=1.0.7" },
     { name = "langgraph-cli", specifier = ">=0.4.12" },
+    { name = "onnxruntime", specifier = ">=1.23.2" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "tiktoken", specifier = ">=0.12.0" },
 ]

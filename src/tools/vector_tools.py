@@ -1,11 +1,11 @@
 from typing import Any, Iterable
 import chromadb
+import re
 
 EMBED_MODEL = "text-embedding-3-small"
 # Keep these modest for Lesson 4; you can switch to token-based later.
-CHUNK_MAX_CHARS = 2000
-CHUNK_OVERLAP_CHARS = 200
-DEFAULT_CHROMA_DIR = ".chroma"
+CHUNK_MAX_CHARS = 1000
+CHUNK_OVERLAP_CHARS = 100
 
 def get_collection(name: str):
     client = chromadb.HttpClient(host="localhost", port=8000)
@@ -13,26 +13,19 @@ def get_collection(name: str):
 
 
 def chunk_text(text: str, max_chars: int = CHUNK_MAX_CHARS, overlap: int = CHUNK_OVERLAP_CHARS) -> list[str]:
-    """
-    Simple char-based chunker.
-    For Lesson 4: stable, predictable, easy to reason about.
-    Upgrade later to token-based chunking + structure-aware splitting.
-    """
-    text = text.strip()
-    if not text:
-        return []
+    # Split on headings / bullet sections
+    sections = re.split(r"\n(?=[A-Z][A-Za-z ]{3,}:)", text)
+    chunks = []
 
-    chunks: list[str] = []
-    i = 0
-    step = max_chars - overlap
-    if step <= 0:
-        raise ValueError("chunk step must be positive; reduce overlap or increase max_chars")
-
-    while i < len(text):
-        chunk = text[i:i + max_chars].strip()
-        if chunk:
-            chunks.append(chunk)
-        i += step
+    for sec in sections:
+        sec = sec.strip()
+        if not sec:
+            continue
+        # Cap size defensively
+        if len(sec) > 1200:
+            chunks.extend([sec[i:i+800] for i in range(0, len(sec), 800)])
+        else:
+            chunks.append(sec)
 
     return chunks
 
